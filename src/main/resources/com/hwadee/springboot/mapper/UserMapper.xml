@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hwadee.springboot.mapper.UserMapper">
+
+    <!-- 查询所有用户 -->
+    <select id="selectAll" resultType="com.hwadee.springboot.entity.User">
+        SELECT * FROM hd_user
+    </select>
+
+    <select id="get" resultType="com.hwadee.springboot.entity.UserEntity">
+        select `user_id`,`name`,`phone`,`account`,`create_date` from hd_user where user_id = #{value}
+    </select>
+
+    <select id="getUserByAccountName" resultType="com.hwadee.springboot.entity.UserEntity">
+        select `user_id` from hd_user where account = #{value}
+    </select>
+
+    <select id="list" resultType="com.hwadee.springboot.entity.UserEntity">
+        select `user_id`,`name`,`phone`,`account`,`create_date` from hd_user
+        <where>
+            <if test="userId != null and userId != ''"> and user_id = #{userId} </if>
+            <if test="name != null and name != ''">  and name = #{name}</if>
+            <if test="phone != null and phone != ''"> and phone = #{phone} </if>
+            <if test="account != null and account != ''"> and account = #{account} </if>
+            <if test="createDate != null and createDate != ''"> and create_date = #{createDate} </if>
+        </where>
+        <choose>
+            <when test="sort != null and sort.trim() != ''">
+                order by ${sort} ${order}
+            </when>
+            <otherwise>
+                order by user_id desc
+            </otherwise>
+        </choose>
+        <if test="offset != null and limit != null">
+            limit #{offset}, #{limit}
+        </if>
+    </select>
+
+    <select id="count" resultType="int">
+        select count(*) from hd_user
+        <where>
+            <if test="userId != null and userId != ''"> and user_id = #{userId} </if>
+            <if test="name != null and name != ''">  and name = #{name} </if>
+            <if test="phone != null and phone != ''"> and phone = #{phone} </if>
+            <if test="account != null and account != ''"> and account = #{account} </if>
+            <if test="createDate != null and createDate != ''"> and create_date = #{createDate} </if>
+        </where>
+    </select>
+
+    <insert id="save" parameterType="com.hwadee.springboot.entity.UserEntity" useGeneratedKeys="true" keyProperty="userId">
+        insert into hd_user
+        (
+            `name`,
+            `phone`,
+            `account`,
+            `password`,
+            `create_date`
+        )
+        values
+            (
+                #{name},
+                #{phone},
+                #{account},
+                #{password},
+                #{createDate}
+            )
+    </insert>
+
+    <update id="update" parameterType="com.hwadee.springboot.entity.UserEntity">
+        update hd_user
+        <set>
+            <if test="name != null">`name` = #{name}, </if>
+            <if test="phone != null">`phone` = #{phone}, </if>
+            <if test="account != null">`account` = #{account}, </if>
+            <if test="password != null">`password` = #{password} </if>
+        </set>
+        where user_id = #{userId}
+    </update>
+
+    <delete id="remove">
+        delete from hd_user where user_id = #{value}
+    </delete>
+
+    <delete id="batchRemove">
+        delete from hd_user where user_id in
+        <foreach item="userId" collection="array" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+    </delete>
+
+    <select id="getUserByLoginInfo" resultType="com.hwadee.springboot.entity.UserEntity">
+        select `user_id`,`name`,`phone`,`account`,`create_date` from hd_user where account = #{account} and password = #{password}
+    </select>
+
+    <!-- 新增用户角色关系 -->
+    <insert id="insertUserRole" parameterType="com.hwadee.springboot.entity.UserEntity">
+        INSERT INTO hd_user_role (user_id, role_id) VALUES (#{userId}, 3)
+    </insert>
+
+</mapper>

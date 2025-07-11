@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hwadee.springboot.mapper.MenuMapper">
+
+	<select id="get" resultType="com.hwadee.springboot.entity.MenuEntity">
+		select `menu_id`,`cname`,`ename`,`path`,`component`,`icon`,`pid` from hd_menu where menu_id = #{value}
+	</select>
+
+	<select id="list" resultType="com.hwadee.springboot.entity.MenuEntity">
+		select `menu_id`,`cname`,`ename`,`path`,`component`,`icon`,`pid`,`create_date`,`update_date` from hd_menu
+        <where>
+			<if test="menu_id != null and menu_id != ''"> and menu_id = #{menuId} </if>
+			<if test="cname != null and cname != ''">  and cname = #{cname}</if>
+		  	<if test="ename != null and ename != ''"> and ename = #{ename} </if>
+		</where>
+        <choose>
+            <when test="sort != null and sort.trim() != ''">
+                order by ${sort} ${order}
+            </when>
+			<otherwise>
+                order by sort asc
+			</otherwise>
+        </choose>
+		<if test="offset != null and limit != null">
+			limit #{offset}, #{limit}
+		</if>
+	</select>
+	
+	<insert id="save" parameterType="com.hwadee.springboot.entity.MenuEntity" useGeneratedKeys="true" keyProperty="userId">
+		insert into hd_menu
+		(
+			`cname`,
+			`ename`,
+			`path`,
+			`component`,
+			`icon`,
+			`pid`,
+		)
+		values
+		(
+			#{cname},
+			#{ename},
+			#{path},
+			#{component},
+			#{icon},
+			#{pid},
+		)
+	</insert>
+	 
+	<update id="update" parameterType="com.hwadee.springboot.entity.MenuEntity">
+		update hd_menu
+		<set>
+			<if test="cname != null">`cname` = #{cname}, </if>
+			<if test="ename != null">`ename` = #{ename}, </if>
+			<if test="path != null">`path` = #{path}, </if>
+			<if test="component != null">`component` = #{component}, </if>
+			<if test="icon != null">`icon` = #{icon}, </if>
+			<if test="pid != null">`pid` = #{pid} </if>
+		</set>
+		where menu_id = #{userId}
+	</update>
+	
+	<delete id="remove">
+		delete from hd_menu where menu_id = #{value}
+	</delete>
+
+	<select id="listByRoleId" resultType="com.hwadee.springboot.entity.MenuEntity">
+		select DISTINCT m.menu_id,m.cname,m.ename,m.path,m.component,m.icon,m.pid
+		from hd_menu m,hd_role_menu rm
+		where m.menu_id=rm.menu_id and rm.role_id in
+		<foreach item="roleId" collection="array" open="(" separator="," close=")">
+			#{roleId}
+		</foreach>
+	</select>
+
+	<select id="listByUserId" resultType="com.hwadee.springboot.entity.MenuEntity">
+		select DISTINCT m.menu_id,m.cname,m.ename,m.path,m.component,m.icon,m.pid
+		from hd_menu m,hd_role_menu rm,hd_user_role ur
+		where m.menu_id=rm.menu_id and rm.role_id and ur.role_id=rm.role_id and ur.user_id = #{userId}
+	</select>
+</mapper>
