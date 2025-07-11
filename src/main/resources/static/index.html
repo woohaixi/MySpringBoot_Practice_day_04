@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学习积分管理系统</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+        }
+        .card h3 {
+            margin-top: 0;
+            color: #555;
+        }
+        .points-display {
+            font-size: 2em;
+            font-weight: bold;
+            color: #4CAF50;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn-success {
+            background-color: #28a745;
+        }
+        .btn-success:hover {
+            background-color: #218838;
+        }
+        .activity-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        .activity-item {
+            padding: 8px;
+            margin: 5px 0;
+            background-color: white;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        .event-item {
+            padding: 8px;
+            margin: 5px 0;
+            background-color: white;
+            border-radius: 4px;
+            border-left: 4px solid #28a745;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>学习积分管理系统</h1>
+        
+        <div class="dashboard">
+            <div class="card">
+                <h3>我的积分</h3>
+                <div class="points-display" id="totalPoints">0</div>
+                <button class="btn btn-success" onclick="loadDashboard()">刷新积分</button>
+            </div>
+            
+            <div class="card">
+                <h3>快速操作</h3>
+                <button class="btn" onclick="initializeDemoData()">初始化演示数据</button>
+                <button class="btn" onclick="loadPointRules()">查看积分规则</button>
+                <button class="btn" onclick="loadSpecialEvents()">查看特殊活动</button>
+            </div>
+        </div>
+        
+        <div class="dashboard">
+            <div class="card">
+                <h3>获取积分</h3>
+                <div class="form-group">
+                    <label for="userId">用户ID:</label>
+                    <input type="number" id="userId" value="1" min="1">
+                </div>
+                <div class="form-group">
+                    <label for="ruleId">积分规则ID:</label>
+                    <input type="number" id="ruleId" value="1" min="1">
+                </div>
+                <div class="form-group">
+                    <label for="activityName">活动名称:</label>
+                    <input type="text" id="activityName" placeholder="输入学习活动名称">
+                </div>
+                <div class="form-group">
+                    <label for="description">活动描述:</label>
+                    <input type="text" id="description" placeholder="输入活动描述">
+                </div>
+                <button class="btn btn-success" onclick="awardPoints()">获得积分</button>
+            </div>
+            
+            <div class="card">
+                <h3>积分规则</h3>
+                <div class="activity-list" id="pointRulesList">
+                    <p>点击"查看积分规则"加载数据</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="dashboard">
+            <div class="card">
+                <h3>积分历史</h3>
+                <div class="activity-list" id="pointHistoryList">
+                    <p>点击"刷新积分"加载历史数据</p>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>特殊活动</h3>
+                <div class="activity-list" id="specialEventsList">
+                    <p>点击"查看特殊活动"加载数据</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="status" id="status"></div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        
+        function showStatus(message, type = 'success') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        }
+        
+        async function initializeDemoData() {
+            try {
+                const response = await fetch(`${API_BASE}/learning-points/initialize-demo-data`, {
+                    method: 'POST'
+                });
+                const result = await response.text();
+                showStatus(result, 'success');
+            } catch (error) {
+                showStatus('初始化演示数据失败: ' + error.message, 'error');
+            }
+        }
+        
+        async function loadDashboard() {
+            const userId = document.getElementById('userId').value;
+            try {
+                const response = await fetch(`${API_BASE}/learning-points/dashboard/${userId}`);
+                const data = await response.json();
+                
+                document.getElementById('totalPoints').textContent = data.totalPoints || 0;
+                
+                // Display point history
+                const historyList = document.getElementById('pointHistoryList');
+                historyList.innerHTML = '';
+                if (data.pointHistory && data.pointHistory.length > 0) {
+                    data.pointHistory.forEach(record => {
+                        const div = document.createElement('div');
+                        div.className = 'activity-item';
+                        div.innerHTML = `
+                            <strong>${record.activityName}</strong><br>
+                            积分: ${record.pointsEarned} | 类型: ${record.pointsType}<br>
+                            获得时间: ${new Date(record.earnedAt).toLocaleString()}
+                        `;
+                        historyList.appendChild(div);
+                    });
+                } else {
+                    historyList.innerHTML = '<p>暂无积分记录</p>';
+                }
+                
+                showStatus('仪表盘数据加载成功', 'success');
+            } catch (error) {
+                showStatus('加载仪表盘数据失败: ' + error.message, 'error');
+            }
+        }
+        
+        async function loadPointRules() {
+            try {
+                const response = await fetch(`${API_BASE}/point-rules/active`);
+                const rules = await response.json();
+                
+                const rulesList = document.getElementById('pointRulesList');
+                rulesList.innerHTML = '';
+                
+                if (rules && rules.length > 0) {
+                    rules.forEach(rule => {
+                        const div = document.createElement('div');
+                        div.className = 'activity-item';
+                        div.innerHTML = `
+                            <strong>ID: ${rule.id} - ${rule.ruleName}</strong><br>
+                            类型: ${rule.activityType}<br>
+                            基础积分: ${rule.basePoints} | 奖励积分: ${rule.bonusPoints || 0}<br>
+                            难度: ${rule.difficultyLevel}<br>
+                            描述: ${rule.description}
+                        `;
+                        rulesList.appendChild(div);
+                    });
+                } else {
+                    rulesList.innerHTML = '<p>暂无积分规则</p>';
+                }
+                
+                showStatus('积分规则加载成功', 'success');
+            } catch (error) {
+                showStatus('加载积分规则失败: ' + error.message, 'error');
+            }
+        }
+        
+        async function loadSpecialEvents() {
+            try {
+                const response = await fetch(`${API_BASE}/special-events/active`);
+                const events = await response.json();
+                
+                const eventsList = document.getElementById('specialEventsList');
+                eventsList.innerHTML = '';
+                
+                if (events && events.length > 0) {
+                    events.forEach(event => {
+                        const div = document.createElement('div');
+                        div.className = 'event-item';
+                        div.innerHTML = `
+                            <strong>${event.eventName}</strong><br>
+                            类型: ${event.eventType}<br>
+                            特殊积分: ${event.specialPoints}<br>
+                            开始时间: ${new Date(event.startDate).toLocaleString()}<br>
+                            结束时间: ${new Date(event.endDate).toLocaleString()}<br>
+                            参与人数: ${event.currentParticipants}/${event.maxParticipants}<br>
+                            描述: ${event.description}
+                        `;
+                        eventsList.appendChild(div);
+                    });
+                } else {
+                    eventsList.innerHTML = '<p>暂无特殊活动</p>';
+                }
+                
+                showStatus('特殊活动加载成功', 'success');
+            } catch (error) {
+                showStatus('加载特殊活动失败: ' + error.message, 'error');
+            }
+        }
+        
+        async function awardPoints() {
+            const userId = document.getElementById('userId').value;
+            const ruleId = document.getElementById('ruleId').value;
+            const activityName = document.getElementById('activityName').value;
+            const description = document.getElementById('description').value;
+            
+            if (!userId || !ruleId || !activityName) {
+                showStatus('请填写完整信息', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/point-records/award`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userId: parseInt(userId),
+                        ruleId: parseInt(ruleId),
+                        activityName: activityName,
+                        description: description
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showStatus(`积分获得成功！获得 ${result.pointsEarned} 积分`, 'success');
+                    loadDashboard(); // 刷新仪表盘
+                } else {
+                    showStatus('获得积分失败', 'error');
+                }
+            } catch (error) {
+                showStatus('获得积分失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboard();
+        });
+    </script>
+</body>
+</html>
